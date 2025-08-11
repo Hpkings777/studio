@@ -26,9 +26,12 @@ const formSchema = z.object({
   message: z.string().min(10, 'Message must be at least 10 characters.').max(500),
   photo: z
     .custom<FileList>()
-    .refine((files) => files?.length === 1, 'A photo is required.')
-    .refine((files) => files?.[0]?.type.startsWith('image/'), 'Only image files are accepted.')
-    .refine((files) => files?.[0]?.size <= 4 * 1024 * 1024, 'Photo must be less than 4MB.'),
+    .refine((files) => !files || files.length === 0 || files.length === 1, {
+      message: 'You can only upload one photo.',
+    })
+    .refine((files) => !files || files.length === 0 || (files?.[0]?.type.startsWith('image/')), 'Only image files are accepted.')
+    .refine((files) => !files || files.length === 0 || (files?.[0]?.size <= 4 * 1024 * 1024), 'Photo must be less than 4MB.')
+    .optional(),
   birthdayDate: z.date({
     required_error: 'A date for the birthday is required.',
   }),
@@ -66,7 +69,7 @@ export function BirthdayForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      age: '' as any,
+      age: undefined,
       message: '',
       template: 'Modern',
       musicOption: 'preset',
@@ -79,7 +82,12 @@ export function BirthdayForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const photoDataUri = await fileToDataUri(values.photo[0]);
+      let photoDataUri: string;
+      if (values.photo && values.photo.length > 0) {
+        photoDataUri = await fileToDataUri(values.photo[0]);
+      } else {
+        photoDataUri = "https://placehold.co/400x400.png";
+      }
       
       const id = crypto.randomUUID();
       
@@ -175,7 +183,7 @@ export function BirthdayForm() {
             name="photo"
             render={({ field: { onChange, value, ...rest } }) => (
               <FormItem>
-                <FormLabel>Upload Photo</FormLabel>
+                <FormLabel>Upload Photo (Optional)</FormLabel>
                 <FormControl>
                    <div className="relative">
                     <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -243,7 +251,10 @@ export function BirthdayForm() {
               <FormLabel>Select Music</FormLabel>
               <FormControl>
                 <RadioGroup
-                  onValueChange={field.onChange}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setMusicOption(value);
+                  }}
                   defaultValue={field.value}
                   className="flex flex-col space-y-1"
                 >
