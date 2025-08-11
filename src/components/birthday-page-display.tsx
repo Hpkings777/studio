@@ -8,12 +8,12 @@ import { textToSpeech } from '@/ai/flows/text-to-speech';
 import type { BirthdayData, LayoutConfig, Memory } from '@/types';
 import CountdownTimer from './countdown-timer';
 import Confetti from './confetti';
-import { Skeleton } from './ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Music, Volume2, VolumeX, CalendarPlus, Gift, Send, MessageSquare, Instagram, Share, Share2, PlayCircle } from 'lucide-react';
+import { Volume2, VolumeX, CalendarPlus, Gift, PlayCircle } from 'lucide-react';
 import MemoryWall from './memory-wall';
 import Balloons from './balloons';
+import LoadingScreen from './loading-screen';
 
 function Surprise() {
     const [revealed, setRevealed] = useState(false);
@@ -50,11 +50,15 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   const [showMemoryForm, setShowMemoryForm] = useState(false);
 
   const fetchAndArrange = useCallback(async () => {
+    // Keep loading screen for at least a couple seconds for branding
+    const minLoadingTime = new Promise(resolve => setTimeout(resolve, 2500));
     setLoading(true);
+
     const birthdayData = getBirthdayData(id);
 
     if (!birthdayData) {
       setError('Birthday celebration not found. The link may be invalid or expired.');
+      await minLoadingTime;
       setLoading(false);
       return;
     }
@@ -79,6 +83,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
       console.error('Failed to arrange elements:', e);
       setError('Could not prepare the celebration layout. Please try again later.');
     } finally {
+       await minLoadingTime;
       setLoading(false);
     }
   }, [id]);
@@ -164,14 +169,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
 
 
   if (loading) {
-    return (
-      <div className="w-full min-h-screen p-8 flex flex-col items-center justify-center gap-8">
-        <Skeleton className="h-16 w-3/4" />
-        <Skeleton className="h-64 w-64 rounded-full" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-12 w-1/2" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (error || !data) {
