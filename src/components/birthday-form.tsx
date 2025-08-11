@@ -40,14 +40,14 @@ const formSchema = z.object({
   }),
   musicOption: z.enum(['preset', 'custom']).default('preset'),
   presetMusic: z.string().optional(),
-  customMusicUrl: z.string().url('Please enter a valid URL.').optional(),
+  customMusicUrl: z.string().optional(),
 }).refine(data => {
     if (data.musicOption === 'custom') {
-        return !!data.customMusicUrl;
+        return !!data.customMusicUrl && z.string().url().safeParse(data.customMusicUrl).success;
     }
     return true;
 }, {
-    message: 'A custom music URL is required.',
+    message: 'A valid custom music URL is required.',
     path: ['customMusicUrl'],
 });
 
@@ -93,7 +93,7 @@ export function BirthdayForm() {
       
       const musicUrl = values.musicOption === 'custom' 
         ? values.customMusicUrl! 
-        : values.presetMusic!;
+        : (values.presetMusic || '/music/happy-birthday-classic.mp3');
 
       const birthdayData: BirthdayData = {
         id,
@@ -137,7 +137,7 @@ export function BirthdayForm() {
                 <FormControl>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input placeholder="e.g. Jane Doe" {...field} className="pl-10" />
+                    <Input placeholder="e.g. Jane Doe" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -153,7 +153,7 @@ export function BirthdayForm() {
                 <FormControl>
                   <div className="relative">
                     <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input type="number" placeholder="e.g. 30" {...field} className="pl-10" />
+                    <Input type="number" placeholder="e.g. 30" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} />
                   </div>
                 </FormControl>
                 <FormMessage />
