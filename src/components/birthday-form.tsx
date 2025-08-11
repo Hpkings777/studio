@@ -51,7 +51,7 @@ export function BirthdayForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      age: undefined,
+      age: '' as any,
       message: '',
       template: 'Modern',
     },
