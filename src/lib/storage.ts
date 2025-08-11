@@ -11,7 +11,7 @@ export function saveBirthdayData(data: BirthdayData): void {
     const key = `${BIRTHDAY_BLISS_PREFIX}${data.id}`;
     const serializedData = JSON.stringify(data);
     localStorage.setItem(key, serializedData);
-  } catch (error) => {
+  } catch (error) {
     console.error('Failed to save birthday data to localStorage', error);
   }
 }
