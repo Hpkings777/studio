@@ -26,7 +26,7 @@ const ArrangeElementsInputSchema = z.object({
 export type ArrangeElementsInput = z.infer<typeof ArrangeElementsInputSchema>;
 
 const ArrangeElementsOutputSchema = z.object({
-  layout: z.string().describe('The JSON layout configuration for the birthday page elements.'),
+  layout: z.string().describe('The JSON layout configuration for the birthday page elements. MUST be a string containing a valid JSON object.'),
 });
 export type ArrangeElementsOutput = z.infer<typeof ArrangeElementsOutputSchema>;
 
@@ -80,7 +80,8 @@ Example JSON Layout Configuration:
   }
 }
 
-Return ONLY a valid JSON object.  Do not include any other text. The JSON must conform to the example above.
+The 'layout' field in your output MUST be a string containing a valid JSON object and nothing else. Do not wrap it in markdown.
+Return ONLY a valid JSON object for the 'layout' field.  Do not include any other text or markdown.
 `,
 });
 
@@ -95,4 +96,3 @@ const arrangeElementsFlow = ai.defineFlow(
     return output!;
   }
 );
-
