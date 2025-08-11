@@ -4,13 +4,14 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { getBirthdayData, getMemories, saveMemory } from '@/lib/storage';
 import { arrangeElements } from '@/ai/flows/arrange-elements';
+import { textToSpeech } from '@/ai/flows/text-to-speech';
 import type { BirthdayData, LayoutConfig, Memory } from '@/types';
 import CountdownTimer from './countdown-timer';
 import Confetti from './confetti';
 import { Skeleton } from './ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Music, Volume2, VolumeX, CalendarPlus, Gift, Send, MessageSquare, Instagram, Share, Share2 } from 'lucide-react';
+import { Music, Volume2, VolumeX, CalendarPlus, Gift, Send, MessageSquare, Instagram, Share, Share2, PlayCircle } from 'lucide-react';
 import MemoryWall from './memory-wall';
 import Balloons from './balloons';
 
@@ -43,6 +44,8 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const ttsAudioRef = useRef<HTMLAudioElement>(null);
+  const [isTtsLoading, setIsTtsLoading] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [showMemoryForm, setShowMemoryForm] = useState(false);
 
@@ -100,6 +103,23 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
       setIsMusicPlaying(!isMusicPlaying);
     }
   };
+
+  const handlePlayMessage = async () => {
+    if (!data?.message) return;
+    setIsTtsLoading(true);
+    try {
+        const { audioDataUri } = await textToSpeech({ text: data.message });
+        if (ttsAudioRef.current) {
+            ttsAudioRef.current.src = audioDataUri;
+            ttsAudioRef.current.play();
+        }
+    } catch (error) {
+        console.error("Error generating TTS:", error);
+        setError("Sorry, couldn't read the message right now.");
+    } finally {
+        setIsTtsLoading(false);
+    }
+  }
   
     const getGoogleCalendarLink = () => {
     if (!data) return '';
@@ -184,6 +204,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
       </div>
 
       <audio ref={audioRef} src={data.musicUrl} loop />
+      <audio ref={ttsAudioRef} />
       
       <div className="flex-grow grid grid-cols-1 grid-rows-4 gap-4">
         {orderedElements.map((item) => {
@@ -201,7 +222,15 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
                         </div>;
               break;
             case 'message':
-              content = <p className={`text-center italic ${sizeClasses(element, size)}`}>"{data.message}"</p>;
+              content = (
+                <div className="flex items-center gap-4">
+                    <p className={`text-center italic ${sizeClasses(element, size)}`}>"{data.message}"</p>
+                    <Button onClick={handlePlayMessage} disabled={isTtsLoading} size="icon" variant="ghost">
+                        <PlayCircle />
+                        <span className="sr-only">Read message</span>
+                    </Button>
+                </div>
+              );
               break;
             case 'countdown':
               content = <div className={sizeClasses(element, size)}><CountdownTimer targetDate={new Date(data.birthdayDate)} /></div>;
@@ -213,7 +242,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
         })}
       </div>
       <div className="py-8">
-         <MemoryWall memories={memories} onAddMemoryClick={() => setShowMemoryForm(true)} showForm={showMemoryForm} onMemorySubmit={handleMemorySubmit} onCancel={() => setShowMemoryForm(false)} />
+         <MemoryWall memories={memories} onAddMemoryClick={() => setShowMemoryForm(true)} showForm={showForm} onMemorySubmit={handleMemorySubmit} onCancel={() => setShowMemoryForm(false)} />
       </div>
       <Surprise />
     </div>
