@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { CalendarIcon, Gift, ImageIcon, Mail, User } from 'lucide-react';
+import { CalendarIcon, Gift, ImageIcon, Mail, Music, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { saveBirthdayData } from '@/lib/storage';
 import type { BirthdayData } from '@/types';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { useState } from 'react';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -33,7 +35,19 @@ const formSchema = z.object({
   template: z.enum(['Modern', 'Classic', 'Funky'], {
     required_error: 'Please select a template.',
   }),
+  musicOption: z.enum(['preset', 'custom']).default('preset'),
+  presetMusic: z.string().optional(),
+  customMusicUrl: z.string().url('Please enter a valid URL.').optional(),
+}).refine(data => {
+    if (data.musicOption === 'custom') {
+        return !!data.customMusicUrl;
+    }
+    return true;
+}, {
+    message: 'A custom music URL is required.',
+    path: ['customMusicUrl'],
 });
+
 
 const fileToDataUri = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -46,6 +60,7 @@ const fileToDataUri = (file: File): Promise<string> =>
 export function BirthdayForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const [musicOption, setMusicOption] = useState('preset');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,14 +69,24 @@ export function BirthdayForm() {
       age: '' as any,
       message: '',
       template: 'Modern',
+      musicOption: 'preset',
+      presetMusic: '/music/happy-birthday-classic.mp3',
+      customMusicUrl: '',
     },
   });
+
+  const selectedMusicOption = form.watch('musicOption');
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const photoDataUri = await fileToDataUri(values.photo[0]);
       
       const id = crypto.randomUUID();
+      
+      const musicUrl = values.musicOption === 'custom' 
+        ? values.customMusicUrl! 
+        : values.presetMusic!;
+
       const birthdayData: BirthdayData = {
         id,
         name: values.name,
@@ -70,6 +95,7 @@ export function BirthdayForm() {
         photoDataUri,
         birthdayDate: values.birthdayDate.toISOString(),
         template: values.template,
+        musicUrl,
       };
 
       saveBirthdayData(birthdayData);
@@ -209,6 +235,84 @@ export function BirthdayForm() {
             </FormItem>
           )}
         />
+         <FormField
+          control={form.control}
+          name="musicOption"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Select Music</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-1"
+                >
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="preset" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Preset Birthday Song
+                    </FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="custom" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Custom Music URL
+                    </FormLabel>
+                  </FormItem>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {selectedMusicOption === 'preset' && (
+          <FormField
+            control={form.control}
+            name="presetMusic"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Choose a Song</FormLabel>
+                 <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a preset song" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="/music/happy-birthday-classic.mp3">Classic Happy Birthday</SelectItem>
+                        <SelectItem value="/music/happy-birthday-electronic.mp3">Electronic Birthday Remix</SelectItem>
+                        <SelectItem value="/music/happy-birthday-acoustic.mp3">Acoustic Birthday</SelectItem>
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {selectedMusicOption === 'custom' && (
+          <FormField
+            control={form.control}
+            name="customMusicUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Custom Music URL</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Music className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input placeholder="https://example.com/song.mp3" {...field} className="pl-10" />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? 'Generating...' : 'Create Birthday Page'}
         </Button>

@@ -2,15 +2,39 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { getBirthdayData } from '@/lib/storage';
+import { getBirthdayData, getMemories, saveMemory } from '@/lib/storage';
 import { arrangeElements } from '@/ai/flows/arrange-elements';
-import type { BirthdayData, LayoutConfig } from '@/types';
+import type { BirthdayData, LayoutConfig, Memory } from '@/types';
 import CountdownTimer from './countdown-timer';
 import Confetti from './confetti';
 import { Skeleton } from './ui/skeleton';
-import { Card, CardContent } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Music, Volume2, VolumeX } from 'lucide-react';
+import { Music, Volume2, VolumeX, CalendarPlus, Gift, Send, MessageSquare, Instagram, Share, Share2 } from 'lucide-react';
+import MemoryWall from './memory-wall';
+import Balloons from './balloons';
+
+function Surprise() {
+    const [revealed, setRevealed] = useState(false);
+
+    if (!revealed) {
+        return (
+            <div className="absolute bottom-4 left-4 z-20">
+                <Button variant="ghost" size="icon" onClick={() => setRevealed(true)} className="animate-pulse">
+                    <Gift />
+                    <span className="sr-only">A surprise!</span>
+                </Button>
+            </div>
+        )
+    }
+
+    return (
+        <div className="absolute bottom-4 left-4 z-20 bg-card p-4 rounded-lg shadow-lg">
+             <Image src="https://placehold.co/200x200.png" alt="Funny Gif" width={200} height={200} data-ai-hint="funny gif" />
+            <p className="text-center mt-2">SURPRISE!</p>
+        </div>
+    )
+}
 
 export default function BirthdayPageDisplay({ id }: { id: string }) {
   const [data, setData] = useState<BirthdayData | null>(null);
@@ -19,6 +43,8 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [showMemoryForm, setShowMemoryForm] = useState(false);
 
   const fetchAndArrange = useCallback(async () => {
     setLoading(true);
@@ -30,6 +56,8 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
       return;
     }
     setData(birthdayData);
+    setMemories(getMemories(id));
+
 
     try {
       const device = window.innerWidth < 768 ? 'mobile' : 'desktop';
@@ -55,6 +83,12 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   useEffect(() => {
     fetchAndArrange();
   }, [id, fetchAndArrange]);
+  
+  const handleMemorySubmit = (author: string, message: string) => {
+    const newMemory = saveMemory(id, { author, message });
+    setMemories(currentMemories => [...currentMemories, newMemory]);
+    setShowMemoryForm(false);
+  };
 
   const toggleMusic = () => {
     if (audioRef.current) {
@@ -66,6 +100,20 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
       setIsMusicPlaying(!isMusicPlaying);
     }
   };
+  
+    const getGoogleCalendarLink = () => {
+    if (!data) return '';
+    const { birthdayDate, name } = data;
+    const date = new Date(birthdayDate);
+    const year = new Date().getFullYear();
+    const startDate = new Date(year, date.getMonth(), date.getDate());
+    const endDate = new Date(year, date.getMonth(), date.getDate() + 1);
+
+    const formattedStartDate = startDate.toISOString().replace(/-|:|\.\d+/g, '');
+    const formattedEndDate = endDate.toISOString().replace(/-|:|\.\d+/g, '');
+
+    return `https://www.google.com/calendar/render?action=TEMPLATE&text=Birthday:%20${encodeURIComponent(name)}&dates=${formattedStartDate}/${formattedEndDate}&details=Don't%20forget%20to%20wish%20${encodeURIComponent(name)}%20a%20happy%20birthday!`;
+    };
 
 
   const positionClasses = (position: string) => {
@@ -121,12 +169,21 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden p-4 md:p-8 flex flex-col">
        <Confetti />
-       <Button onClick={toggleMusic} variant="outline" size="icon" className="absolute top-4 right-4 z-20">
-        {isMusicPlaying ? <Volume2 /> : <VolumeX />}
-        <span className="sr-only">Toggle Music</span>
-      </Button>
-      {/* Ensure music can be played. You would replace music.mp3 with your actual file in /public */}
-      <audio ref={audioRef} src="/music.mp3" loop />
+       <Balloons />
+       <div className="absolute top-4 right-4 z-20 flex gap-2">
+         <Button onClick={toggleMusic} variant="outline" size="icon">
+          {isMusicPlaying ? <Volume2 /> : <VolumeX />}
+          <span className="sr-only">Toggle Music</span>
+        </Button>
+        <Button variant="outline" size="icon" asChild>
+          <a href={getGoogleCalendarLink()} target="_blank" rel="noopener noreferrer">
+            <CalendarPlus />
+            <span className="sr-only">Add to Calendar</span>
+          </a>
+        </Button>
+      </div>
+
+      <audio ref={audioRef} src={data.musicUrl} loop />
       
       <div className="flex-grow grid grid-cols-1 grid-rows-4 gap-4">
         {orderedElements.map((item) => {
@@ -155,6 +212,10 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
           return <div key={element} className={wrapperClasses}>{content}</div>;
         })}
       </div>
+      <div className="py-8">
+         <MemoryWall memories={memories} onAddMemoryClick={() => setShowMemoryForm(true)} showForm={showMemoryForm} onMemorySubmit={handleMemorySubmit} onCancel={() => setShowMemoryForm(false)} />
+      </div>
+      <Surprise />
     </div>
   );
 }

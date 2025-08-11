@@ -6,6 +6,14 @@ export interface BirthdayData {
   photoDataUri: string;
   birthdayDate: string; // Stored as ISO string in localStorage
   template: 'Modern' | 'Classic' | 'Funky';
+  musicUrl: string;
+}
+
+export interface Memory {
+    id: string;
+    author: string;
+    message: string;
+    timestamp: string;
 }
 
 export interface LayoutConfig {
