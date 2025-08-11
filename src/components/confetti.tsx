@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { cn } from '@/lib/utils';
 
 const ConfettiPiece = ({ id }: { id: number }) => {
   const [style, setStyle] = useState({});
@@ -29,8 +28,14 @@ const ConfettiPiece = ({ id }: { id: number }) => {
       }
     `;
 
-    const styleSheet = document.styleSheets[0];
-    styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
+    if (typeof window !== 'undefined') {
+        const styleSheet = document.styleSheets[0];
+        try {
+            styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
+        } catch(e) {
+            console.warn('Could not insert CSS rule for confetti animation.', e);
+        }
+    }
 
     setStyle({
       position: 'fixed',
@@ -49,19 +54,25 @@ const ConfettiPiece = ({ id }: { id: number }) => {
 };
 
 const Confetti = () => {
-  const [pieces, setPieces] = useState<number[]>([]);
+    const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setPieces(Array.from({ length: 150 }, (_, i) => i));
-  }, []);
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
-  return (
-    <div className="fixed inset-0 pointer-events-none w-full h-full">
-      {pieces.map((id) => (
-        <ConfettiPiece key={id} id={id} />
-      ))}
-    </div>
-  );
+    if (!isClient) {
+        return null;
+    }
+
+    const pieces = Array.from({ length: 150 }, (_, i) => i);
+
+    return (
+        <div className="fixed inset-0 pointer-events-none w-full h-full">
+        {pieces.map((id) => (
+            <ConfettiPiece key={id} id={id} />
+        ))}
+        </div>
+    );
 };
 
 export default Confetti;

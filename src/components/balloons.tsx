@@ -54,11 +54,17 @@ const Balloon = ({ id }: { id: number }) => {
 };
 
 const Balloons = () => {
-  const [balloons, setBalloons] = useState<number[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setBalloons(Array.from({ length: 15 }, (_, i) => i));
+    setIsClient(true);
   }, []);
+
+  if (!isClient) {
+    return null;
+  }
+  
+  const balloons = Array.from({ length: 15 }, (_, i) => i);
 
   return (
     <div className="fixed inset-0 pointer-events-none w-full h-full overflow-hidden">
