@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { getBirthdayData } from '@/lib/storage';
 import { arrangeElements } from '@/ai/flows/arrange-elements';
@@ -20,41 +20,41 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  useEffect(() => {
-    const fetchAndArrange = async () => {
-      setLoading(true);
-      const birthdayData = getBirthdayData(id);
+  const fetchAndArrange = useCallback(async () => {
+    setLoading(true);
+    const birthdayData = getBirthdayData(id);
 
-      if (!birthdayData) {
-        setError('Birthday celebration not found. The link may be invalid or expired.');
-        setLoading(false);
-        return;
-      }
-      setData(birthdayData);
+    if (!birthdayData) {
+      setError('Birthday celebration not found. The link may be invalid or expired.');
+      setLoading(false);
+      return;
+    }
+    setData(birthdayData);
 
-      try {
-        const device = window.innerWidth < 768 ? 'mobile' : 'desktop';
-        const result = await arrangeElements({
-          template: birthdayData.template,
-          device,
-          name: birthdayData.name,
-          message: birthdayData.message,
-          photoDataUri: birthdayData.photoDataUri,
-          birthdayDate: new Date(birthdayData.birthdayDate).toISOString().split('T')[0],
-        });
-        
-        const parsedLayout = JSON.parse(result.layout);
-        setLayout(parsedLayout);
-      } catch (e) {
-        console.error('Failed to arrange elements:', e);
-        setError('Could not prepare the celebration layout. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAndArrange();
+    try {
+      const device = window.innerWidth < 768 ? 'mobile' : 'desktop';
+      const result = await arrangeElements({
+        template: birthdayData.template,
+        device,
+        name: birthdayData.name,
+        message: birthdayData.message,
+        photoDataUri: birthdayData.photoDataUri,
+        birthdayDate: new Date(birthdayData.birthdayDate).toISOString().split('T')[0],
+      });
+      
+      const parsedLayout = JSON.parse(result.layout);
+      setLayout(parsedLayout);
+    } catch (e) {
+      console.error('Failed to arrange elements:', e);
+      setError('Could not prepare the celebration layout. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchAndArrange();
+  }, [id, fetchAndArrange]);
 
   const toggleMusic = () => {
     if (audioRef.current) {
