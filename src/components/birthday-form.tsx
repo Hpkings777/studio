@@ -153,7 +153,7 @@ export function BirthdayForm() {
                 <FormControl>
                   <div className="relative">
                     <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input type="number" placeholder="e.g. 30" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} />
+                    <Input type="number" placeholder="e.g. 30" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} value={field.value ?? ''}/>
                   </div>
                 </FormControl>
                 <FormMessage />
