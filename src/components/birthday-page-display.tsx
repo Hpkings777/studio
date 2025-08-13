@@ -10,7 +10,7 @@ import CountdownTimer from './countdown-timer';
 import Confetti from './confetti';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Volume2, VolumeX, CalendarPlus, Gift, PlayCircle, Palette, PersonStanding } from 'lucide-react';
+import { Volume2, VolumeX, CalendarPlus, Gift, PlayCircle, Palette } from 'lucide-react';
 import MemoryWall from './memory-wall';
 import Balloons from './balloons';
 import LoadingScreen from './loading-screen';
@@ -54,7 +54,6 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   const { themeStyles } = useTheme();
 
   const fetchAndArrange = useCallback(async () => {
-    // Keep loading screen for at least a couple seconds for branding
     const minLoadingTime = new Promise(resolve => setTimeout(resolve, 2500));
     setLoading(true);
 
@@ -113,11 +112,12 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
     }
   };
 
-  const handlePlayMessage = async (voice: 'male' | 'female') => {
+  const handlePlayMessage = async () => {
     if (!data?.message) return;
     setIsTtsLoading(true);
     try {
-        const { audioDataUri } = await multiSpeakerTts({ message: data.message, voice });
+        // Using 'female' as the default cheerful voice
+        const { audioDataUri } = await multiSpeakerTts({ message: data.message, voice: 'female' });
         if (ttsAudioRef.current) {
             ttsAudioRef.current.src = audioDataUri;
             ttsAudioRef.current.play();
@@ -233,18 +233,10 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
               content = (
                 <div className="flex items-center gap-4 group">
                     <p className={`text-center italic ${sizeClasses(element, size)}`}>"{data.message}"</p>
-                    <div className="flex flex-col gap-2">
-                        <Button onClick={() => handlePlayMessage('female')} disabled={isTtsLoading} size="icon" variant="ghost">
-                            <PlayCircle />
-                            <PersonStanding className="h-4 w-4" />
-                            <span className="sr-only">Read message in female voice</span>
-                        </Button>
-                         <Button onClick={() => handlePlayMessage('male')} disabled={isTtsLoading} size="icon" variant="ghost">
-                            <PlayCircle />
-                            <PersonStanding className="h-4 w-4" />
-                            <span className="sr-only">Read message in male voice</span>
-                        </Button>
-                    </div>
+                    <Button onClick={handlePlayMessage} disabled={isTtsLoading} size="icon" variant="ghost">
+                        <PlayCircle />
+                        <span className="sr-only">Read message</span>
+                    </Button>
                 </div>
               );
               break;
