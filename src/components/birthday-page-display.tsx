@@ -240,7 +240,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
         })}
       </div>
       <div className="py-8">
-         <MemoryWall memories={memories} onAddMemoryClick={() => setShowMemoryForm(true)} showForm={showForm} onMemorySubmit={handleMemorySubmit} onCancel={() => setShowMemoryForm(false)} />
+         <MemoryWall memories={memories} onAddMemoryClick={() => setShowMemoryForm(true)} showForm={showMemoryForm} onMemorySubmit={handleMemorySubmit} onCancel={() => setShowMemoryForm(false)} />
       </div>
       <Surprise />
     </div>
