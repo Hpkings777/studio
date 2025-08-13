@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview A Text-to-Speech (TTS) AI agent for generating audio from text using different voices.
+ * @fileOverview A Text-to-Speech (TTS) AI agent for generating audio from text.
  *
  * - multiSpeakerTts - A function that handles the TTS conversion process.
  * - MultiSpeakerTtsInput - The input type for the function.
@@ -15,7 +15,6 @@ import { googleAI } from '@genkit-ai/googleai';
 
 const MultiSpeakerTtsInputSchema = z.object({
   message: z.string().describe('The text to be converted to speech.'),
-  voice: z.enum(['male', 'female']).describe('The desired voice for the speech.'),
 });
 
 export type MultiSpeakerTtsInput = z.infer<typeof MultiSpeakerTtsInputSchema>;
@@ -63,35 +62,21 @@ const multiSpeakerTtsFlow = ai.defineFlow(
     inputSchema: MultiSpeakerTtsInputSchema,
     outputSchema: MultiSpeakerTtsOutputSchema,
   },
-  async ({ message, voice }) => {
-    // Select voice based on input
-    const speaker1Voice = voice === 'female' ? 'Algenib' : 'Achernar';
-    const speaker2Voice = 'Calisto'; // A cheerful, standard voice as a fallback or second option
+  async ({ message }) => {
+    // A cheerful, standard voice
+    const voiceName = 'Algenib'; 
 
     const { media } = await ai.generate({
       model: googleAI.model('gemini-2.5-flash-preview-tts'),
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
-           multiSpeakerVoiceConfig: {
-            speakerVoiceConfigs: [
-              {
-                speaker: 'Speaker1',
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: speaker1Voice },
-                },
-              },
-              {
-                speaker: 'Speaker2',
-                voiceConfig: {
-                    prebuiltVoiceConfig: { voiceName: speaker2Voice },
-                }
-              }
-            ],
-          },
+           voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: voiceName },
+            },
         },
       },
-      prompt: `Speaker1: ${message}`,
+      prompt: message,
     });
 
     if (!media) {

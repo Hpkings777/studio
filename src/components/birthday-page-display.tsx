@@ -33,7 +33,7 @@ function Surprise() {
 
     return (
         <div className="absolute bottom-4 left-4 z-20 bg-card p-4 rounded-lg shadow-lg">
-             <Image src="https://placehold.co/200x200.png" alt="Funny Gif" width={200} height={200} data-ai-hint="funny gif" />
+             <Image src="https://placehold.co/200x200.png" alt="Funny Gif" width={200} height={200} data-ai-hint="funny meme" />
             <p className="text-center mt-2">SURPRISE!</p>
         </div>
     )
@@ -116,8 +116,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
     if (!data?.message) return;
     setIsTtsLoading(true);
     try {
-        // Using 'female' as the default cheerful voice
-        const { audioDataUri } = await multiSpeakerTts({ message: data.message, voice: 'female' });
+        const { audioDataUri } = await multiSpeakerTts({ message: data.message });
         if (ttsAudioRef.current) {
             ttsAudioRef.current.src = audioDataUri;
             ttsAudioRef.current.play();
@@ -212,10 +211,11 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
       <audio ref={audioRef} src={data.musicUrl} loop />
       <audio ref={ttsAudioRef} />
       
-      {showThemeCustomizer && <ThemeCustomizer birthdayId={id} />}
+      {showThemeCustomizer && <ThemeCustomizer birthdayId={id} onClose={() => setShowThemeCustomizer(false)} />}
 
       <div className="flex-grow grid grid-cols-1 grid-rows-4 gap-4">
         {orderedElements.map((item) => {
+          if (!item) return null;
           const { element, position, size } = item;
           const wrapperClasses = `flex p-2 ${positionClasses(position)}`;
 
@@ -231,9 +231,9 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
               break;
             case 'message':
               content = (
-                <div className="flex items-center gap-4 group">
-                    <p className={`text-center italic ${sizeClasses(element, size)}`}>"{data.message}"</p>
-                    <Button onClick={handlePlayMessage} disabled={isTtsLoading} size="icon" variant="ghost">
+                <div className="flex items-center gap-2 group max-w-prose text-center">
+                    <p className={`italic ${sizeClasses(element, size)}`}>"{data.message}"</p>
+                    <Button onClick={handlePlayMessage} disabled={isTtsLoading} size="icon" variant="ghost" className="shrink-0">
                         <PlayCircle />
                         <span className="sr-only">Read message</span>
                     </Button>
