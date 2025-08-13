@@ -4,16 +4,18 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { getBirthdayData, getMemories, saveMemory } from '@/lib/storage';
 import { arrangeElements } from '@/ai/flows/arrange-elements';
-import { textToSpeech } from '@/ai/flows/text-to-speech';
+import { multiSpeakerTts } from '@/ai/flows/multi-speaker-tts.ts';
 import type { BirthdayData, LayoutConfig, Memory } from '@/types';
 import CountdownTimer from './countdown-timer';
 import Confetti from './confetti';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Volume2, VolumeX, CalendarPlus, Gift, PlayCircle } from 'lucide-react';
+import { Volume2, VolumeX, CalendarPlus, Gift, PlayCircle, Palette, PersonStanding } from 'lucide-react';
 import MemoryWall from './memory-wall';
 import Balloons from './balloons';
 import LoadingScreen from './loading-screen';
+import ThemeCustomizer from './theme-customizer';
+import { useTheme } from '@/hooks/use-theme';
 
 function Surprise() {
     const [revealed, setRevealed] = useState(false);
@@ -48,6 +50,8 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   const [isTtsLoading, setIsTtsLoading] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [showMemoryForm, setShowMemoryForm] = useState(false);
+  const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
+  const { themeStyles } = useTheme();
 
   const fetchAndArrange = useCallback(async () => {
     // Keep loading screen for at least a couple seconds for branding
@@ -109,11 +113,11 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
     }
   };
 
-  const handlePlayMessage = async () => {
+  const handlePlayMessage = async (voice: 'male' | 'female') => {
     if (!data?.message) return;
     setIsTtsLoading(true);
     try {
-        const { audioDataUri } = await textToSpeech({ text: data.message });
+        const { audioDataUri } = await multiSpeakerTts({ message: data.message, voice });
         if (ttsAudioRef.current) {
             ttsAudioRef.current.src = audioDataUri;
             ttsAudioRef.current.play();
@@ -185,7 +189,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden p-4 md:p-8 flex flex-col">
+    <div className="relative min-h-screen w-full overflow-hidden p-4 md:p-8 flex flex-col" style={themeStyles}>
        <Confetti />
        <Balloons />
        <div className="absolute top-4 right-4 z-20 flex gap-2">
@@ -199,11 +203,17 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
             <span className="sr-only">Add to Calendar</span>
           </a>
         </Button>
+         <Button onClick={() => setShowThemeCustomizer(!showThemeCustomizer)} variant="outline" size="icon">
+          <Palette />
+          <span className="sr-only">Customize Theme</span>
+        </Button>
       </div>
 
       <audio ref={audioRef} src={data.musicUrl} loop />
       <audio ref={ttsAudioRef} />
       
+      {showThemeCustomizer && <ThemeCustomizer birthdayId={id} />}
+
       <div className="flex-grow grid grid-cols-1 grid-rows-4 gap-4">
         {orderedElements.map((item) => {
           const { element, position, size } = item;
@@ -221,12 +231,20 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
               break;
             case 'message':
               content = (
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 group">
                     <p className={`text-center italic ${sizeClasses(element, size)}`}>"{data.message}"</p>
-                    <Button onClick={handlePlayMessage} disabled={isTtsLoading} size="icon" variant="ghost">
-                        <PlayCircle />
-                        <span className="sr-only">Read message</span>
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                        <Button onClick={() => handlePlayMessage('female')} disabled={isTtsLoading} size="icon" variant="ghost">
+                            <PlayCircle />
+                            <PersonStanding className="h-4 w-4" />
+                            <span className="sr-only">Read message in female voice</span>
+                        </Button>
+                         <Button onClick={() => handlePlayMessage('male')} disabled={isTtsLoading} size="icon" variant="ghost">
+                            <PlayCircle />
+                            <PersonStanding className="h-4 w-4" />
+                            <span className="sr-only">Read message in male voice</span>
+                        </Button>
+                    </div>
                 </div>
               );
               break;
