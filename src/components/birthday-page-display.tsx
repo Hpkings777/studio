@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { getBirthdayData, getMemories, saveMemory } from '@/lib/storage';
-import { arrangeElements } from '@/ai/flows/arrange-elements';
 import { multiSpeakerTts } from '@/ai/flows/multi-speaker-tts.ts';
 import type { BirthdayData, LayoutConfig, Memory } from '@/types';
 import CountdownTimer from './countdown-timer';
@@ -33,11 +32,20 @@ function Surprise() {
 
     return (
         <div className="absolute bottom-4 left-4 z-20 bg-card p-4 rounded-lg shadow-lg">
-             <Image src="https://placehold.co/200x200.png" alt="Funny Gif" width={200} height={200} data-ai-hint="funny meme" />
+             <Image src="https://picsum.photos/200/200" alt="Funny Gif" width={200} height={200} data-ai-hint="funny meme" />
             <p className="text-center mt-2">SURPRISE!</p>
         </div>
     )
 }
+
+// Static layout to avoid AI flow timeouts on Vercel
+const staticLayout: LayoutConfig = {
+    header: { element: 'name', position: 'top-center', size: 'large' },
+    photo: { element: 'photo', position: 'center', size: 'medium' },
+    message: { element: 'message', position: 'center', size: 'medium' },
+    countdown: { element: 'countdown', position: 'bottom-center', size: 'small' },
+};
+
 
 export default function BirthdayPageDisplay({ id }: { id: string }) {
   const [data, setData] = useState<BirthdayData | null>(null);
@@ -53,7 +61,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
   const { themeStyles } = useTheme();
 
-  const fetchAndArrange = useCallback(async () => {
+  const fetchAndSetData = useCallback(async () => {
     const minLoadingTime = new Promise(resolve => setTimeout(resolve, 2500));
     setLoading(true);
 
@@ -65,35 +73,19 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
       setLoading(false);
       return;
     }
+    
     setData(birthdayData);
     setMemories(getMemories(id));
+    setLayout(staticLayout); // Use the reliable static layout
 
+    await minLoadingTime;
+    setLoading(false);
 
-    try {
-      const device = window.innerWidth < 768 ? 'mobile' : 'desktop';
-      const result = await arrangeElements({
-        template: birthdayData.template,
-        device,
-        name: birthdayData.name,
-        message: birthdayData.message,
-        photoDataUri: birthdayData.photoDataUri,
-        birthdayDate: new Date(birthdayData.birthdayDate).toISOString().split('T')[0],
-      });
-      
-      const parsedLayout = JSON.parse(result.layout);
-      setLayout(parsedLayout);
-    } catch (e) {
-      console.error('Failed to arrange elements:', e);
-      setError('Could not prepare the celebration layout. Please try again later.');
-    } finally {
-       await minLoadingTime;
-      setLoading(false);
-    }
   }, [id]);
 
   useEffect(() => {
-    fetchAndArrange();
-  }, [id, fetchAndArrange]);
+    fetchAndSetData();
+  }, [id, fetchAndSetData]);
   
   const handleMemorySubmit = (author: string, message: string) => {
     const newMemory = saveMemory(id, { author, message });
@@ -180,7 +172,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
       <div className="flex items-center justify-center min-h-screen p-4">
         <Card className="max-w-md w-full text-center">
           <CardContent className="p-8">
-            <h2 className="text-2xl font-bold text-destructive-foreground">{error || 'An unknown error occurred.'}</h2>
+            <h2 className="text-2xl font-bold text-destructive">{error || 'An unknown error occurred.'}</h2>
           </CardContent>
         </Card>
       </div>
