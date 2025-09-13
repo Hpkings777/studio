@@ -94,7 +94,7 @@ export function BirthdayForm() {
 
       const birthdayData = {
         name: values.name,
-        age: values.age,
+        age: values.age || 0,
         message: values.message,
         photoDataUri,
         birthdayDate: values.birthdayDate.toISOString(),
