@@ -74,16 +74,25 @@ export function BirthdayForm() {
       musicOption: 'preset',
       presetMusic: '/music/happy-birthday-classic.mp3',
       customMusicUrl: '',
-      age: 0,
+      age: undefined,
     },
   });
 
   const selectedMusicOption = form.watch('musicOption');
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    const { toast: showToast } = toast({
+      title: 'Creating Page...',
+      description: 'Please wait while we get things ready.',
+    });
+
     try {
       let photoDataUri: string;
       if (values.photo && values.photo.length > 0) {
+        showToast({
+            title: 'Uploading Photo...',
+            description: 'This may take a moment for larger images.',
+        });
         photoDataUri = await fileToDataUri(values.photo[0]);
       } else {
         photoDataUri = `https://picsum.photos/seed/${values.name.replace(/\s+/g, '-') || 'person'}/400/400`;
@@ -96,7 +105,9 @@ export function BirthdayForm() {
       const dob = values.dateOfBirth;
       const currentYear = getYear(new Date());
       const birthdayDate = setYear(dob, currentYear); 
-      const finalAge = differenceInYears(birthdayDate, dob);
+      
+      // Always calculate age right before submission
+      const finalAge = differenceInYears(new Date(), dob);
 
       const birthdayData = {
         name: values.name,
@@ -108,10 +119,17 @@ export function BirthdayForm() {
         template: values.template,
         musicUrl,
       };
+      
+      showToast({
+        title: 'Saving Birthday Data...',
+        description: 'Storing the celebration details securely.',
+      });
 
       const id = await saveBirthdayData(birthdayData);
 
-      toast({
+      showToast({
+        id,
+        variant: 'default',
         title: 'Success!',
         description: 'Your birthday page has been created.',
       });
@@ -119,10 +137,11 @@ export function BirthdayForm() {
       router.push(`/share/${id}`);
     } catch (error) {
       console.error('Form submission error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       toast({
         variant: 'destructive',
         title: 'Oh no! Something went wrong.',
-        description: 'Could not create the birthday page. Please try again.',
+        description: `Could not create the birthday page. Reason: ${errorMessage}`,
       });
     }
   }
@@ -152,21 +171,18 @@ export function BirthdayForm() {
                 name="age"
                 render={({ field: { onChange, value, ...fieldProps } }) => (
                 <FormItem>
-                    <FormLabel>Age they are turning</FormLabel>
+                    <FormLabel>Age (will be calculated)</FormLabel>
                     <FormControl>
                     <div className="relative">
                         <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input type="number" placeholder="e.g. 30" {...fieldProps} 
-                          onChange={e => {
-                            const ageVal = e.target.value;
-                            onChange(ageVal === '' ? undefined : Number(ageVal));
-                            if (ageVal) {
-                                const birthDate = subYears(new Date(), Number(ageVal));
-                                form.setValue('dateOfBirth', birthDate, { shouldValidate: true });
-                            }
-                          }} 
-                          value={value ?? ''}
-                          className="pl-10" />
+                        <Input 
+                            type="number" 
+                            placeholder="e.g. 30" 
+                            {...fieldProps}
+                            value={value ?? ''}
+                            readOnly
+                            className="pl-10 text-muted-foreground" 
+                        />
                     </div>
                     </FormControl>
                     <FormMessage />
@@ -198,8 +214,8 @@ export function BirthdayForm() {
                             onSelect={(date) => {
                                 if (date) {
                                     field.onChange(date);
-                                    const age = differenceInYears(setYear(date, getYear(new Date())), date);
-                                    form.setValue('age', age > 0 ? age : 0, { shouldValidate: true });
+                                    const age = differenceInYears(new Date(), date);
+                                    form.setValue('age', age >= 0 ? age : 0, { shouldValidate: true });
                                 }
                             }} 
                             initialFocus

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -16,6 +17,7 @@ import LoadingScreen from './loading-screen';
 import ThemeCustomizer from './theme-customizer';
 import { useTheme } from '@/hooks/use-theme';
 import { isToday } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 function Surprise() {
     const [revealed, setRevealed] = useState(false);
@@ -59,6 +61,8 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
   const [showMemoryForm, setShowMemoryForm] = useState(false);
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
   const { themeStyles } = useTheme();
+  const { toast } = useToast();
+
 
   const fetchAndSetData = useCallback(async () => {
     const minLoadingTime = new Promise(resolve => setTimeout(resolve, 2500));
@@ -89,8 +93,17 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
         const newMemory = await saveMemory(data.id, { author, message });
         setMemories(currentMemories => [...currentMemories, newMemory]);
         setShowMemoryForm(false);
+        toast({
+            title: 'Message Posted!',
+            description: 'Thank you for sharing your memory.',
+        });
     } catch (e) {
-        setError("Failed to save memory. Please try again.");
+        const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
+        toast({
+            variant: "destructive",
+            title: "Failed to Post Message",
+            description: `Could not save memory. Reason: ${errorMessage}`,
+        });
     }
   };
 
@@ -99,7 +112,14 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
       if (isMusicPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch(err => {
+            console.error("Audio play failed:", err);
+            toast({
+                variant: 'destructive',
+                title: 'Could not play music',
+                description: 'Your browser might be blocking autoplay. Try interacting with the page first.'
+            });
+        });
       }
       setIsMusicPlaying(!isMusicPlaying);
     }
@@ -115,8 +135,13 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
             ttsAudioRef.current.play();
         }
     } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         console.error("Error generating TTS:", error);
-        setError("Sorry, couldn't read the message right now.");
+        toast({
+            variant: 'destructive',
+            title: 'Text-to-Speech Failed',
+            description: `Sorry, couldn't read the message right now. Reason: ${errorMessage}`
+        });
     } finally {
         setIsTtsLoading(false);
     }
@@ -253,7 +278,7 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
         })}
       </div>
       <div className="py-8">
-         <MemoryWall memories={memories} onAddMemoryClick={() => setShowMemoryForm(true)} showForm={showMemoryForm} onMemorySubmit={handleMemorySubmit} onCancel={() => setShowMemoryForm(false)} />
+         <MemoryWall memories={memories} onAddMemoryClick={() => setShowMemoryForm(true)} showForm={showForm} onMemorySubmit={handleMemorySubmit} onCancel={() => setShowMemoryForm(false)} />
       </div>
        {isBirthdayToday && <Surprise />}
     </div>
