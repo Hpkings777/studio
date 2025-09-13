@@ -11,6 +11,7 @@ export async function saveBirthdayData(data: Omit<BirthdayData, 'id'>): Promise<
     const birthdayDataWithTimestamp = {
       ...data,
       birthdayDate: Timestamp.fromDate(new Date(data.birthdayDate)),
+      dateOfBirth: Timestamp.fromDate(new Date(data.dateOfBirth)),
     }
     await setDoc(newDocRef, birthdayDataWithTimestamp);
     return newDocRef.id;
@@ -27,8 +28,10 @@ export async function getBirthdayData(id: string): Promise<BirthdayData | null> 
 
     if (docSnap.exists()) {
       const data = docSnap.data();
+      // Convert Timestamps back to ISO strings for client-side usage
       const birthdayDate = (data.birthdayDate as Timestamp).toDate().toISOString();
-      return { ...data, id: docSnap.id, birthdayDate } as BirthdayData;
+      const dateOfBirth = (data.dateOfBirth as Timestamp).toDate().toISOString();
+      return { ...data, id: docSnap.id, birthdayDate, dateOfBirth } as BirthdayData;
     } else {
       console.log('No such document!');
       return null;

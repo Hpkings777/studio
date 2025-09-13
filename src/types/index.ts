@@ -6,7 +6,7 @@ export interface BirthdayData {
   age: number;
   message: string;
   photoDataUri: string;
-  dateOfBirth: string; // Stored as ISO string
+  dateOfBirth: string; // Stored as ISO string in app, but Timestamp in Firestore
   birthdayDate: string; // Stored as ISO string in app, but Timestamp in Firestore
   template: 'Modern' | 'Classic' | 'Funky';
   musicUrl: string;
