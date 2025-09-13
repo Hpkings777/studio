@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { format, differenceInYears, setYear } from 'date-fns';
 import { CalendarIcon, Gift, ImageIcon, Mail, Music, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -79,13 +79,35 @@ export function BirthdayForm() {
 
   const selectedMusicOption = form.watch('musicOption');
 
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+        form.setValue('birthdayDate', date, { shouldValidate: true });
+        const age = differenceInYears(date, new Date());
+        form.setValue('age', age > 0 ? age : 1, { shouldValidate: true });
+    }
+  }
+
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const ageValue = e.target.value;
+    const age = ageValue === '' ? undefined : +ageValue;
+    form.setValue('age', age, { shouldValidate: true });
+
+    if (age && age > 0) {
+        const today = new Date();
+        const birthYear = today.getFullYear() - age;
+        const estimatedBirthDate = new Date(birthYear, today.getMonth(), today.getDate());
+        form.setValue('birthdayDate', setYear(estimatedBirthDate, new Date().getFullYear()), { shouldValidate: true });
+    }
+  }
+
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       let photoDataUri: string;
       if (values.photo && values.photo.length > 0) {
         photoDataUri = await fileToDataUri(values.photo[0]);
       } else {
-        photoDataUri = "https://placehold.co/400x400.png";
+        photoDataUri = `https://picsum.photos/seed/${values.name.split(' ')[0] || 'person'}/400/400`;
       }
       
       const musicUrl = values.musicOption === 'custom' 
@@ -123,8 +145,7 @@ export function BirthdayForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid md:grid-cols-2 gap-8">
-          <FormField
+        <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
@@ -133,29 +154,56 @@ export function BirthdayForm() {
                 <FormControl>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input placeholder="e.g. Jane Doe" {...field} />
+                    <Input placeholder="e.g. Jane Doe" {...field} className="pl-10" />
                   </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="age"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Age they are turning</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input type="number" placeholder="e.g. 30" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} value={field.value ?? ''}/>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="grid md:grid-cols-2 gap-8">
+            <FormField
+                control={form.control}
+                name="age"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Age they are turning</FormLabel>
+                    <FormControl>
+                    <div className="relative">
+                        <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input type="number" placeholder="e.g. 30" {...field} onChange={handleAgeChange} value={field.value ?? ''} className="pl-10" />
+                    </div>
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="birthdayDate"
+                render={({ field }) => (
+                <FormItem className="flex flex-col pt-2">
+                    <FormLabel>Birthday Date</FormLabel>
+                    <Popover>
+                    <PopoverTrigger asChild>
+                        <FormControl>
+                        <Button
+                            variant={'outline'}
+                            className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                        >
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                        </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={handleDateChange} initialFocus />
+                    </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
         </div>
         <FormField
           control={form.control}
@@ -173,8 +221,7 @@ export function BirthdayForm() {
             </FormItem>
           )}
         />
-        <div className="grid md:grid-cols-2 gap-8">
-          <FormField
+        <FormField
             control={form.control}
             name="photo"
             render={({ field: { onChange, value, ...rest } }) => (
@@ -190,33 +237,6 @@ export function BirthdayForm() {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="birthdayDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col pt-2">
-                <FormLabel>Birthday Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
-                      >
-                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
         <FormField
           control={form.control}
           name="template"

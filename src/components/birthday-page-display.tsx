@@ -220,7 +220,12 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
           let content;
           switch (element) {
             case 'name':
-              content = <h1 className={`text-center font-headline ${sizeClasses(element, size)}`}>{data.name}</h1>;
+              content = (
+                <div className="text-center">
+                  <h1 className={`font-headline ${sizeClasses(element, size)}`}>{data.name}</h1>
+                  {data.age > 0 && <p className="text-xl md:text-2xl text-muted-foreground">is turning {data.age}!</p>}
+                </div>
+              );
               break;
             case 'photo':
               content = <div className={`relative ${sizeClasses(element, size)} shadow-2xl rounded-full overflow-hidden border-4 border-secondary`}>
