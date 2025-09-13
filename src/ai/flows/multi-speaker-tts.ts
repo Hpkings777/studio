@@ -67,7 +67,7 @@ const multiSpeakerTtsFlow = ai.defineFlow(
     const voiceName = 'Algenib'; 
 
     const { media } = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash-preview-tts'),
+      model: googleAI.model('gemini-1.5-flash-preview'),
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
