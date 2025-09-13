@@ -15,6 +15,7 @@ import Balloons from './balloons';
 import LoadingScreen from './loading-screen';
 import ThemeCustomizer from './theme-customizer';
 import { useTheme } from '@/hooks/use-theme';
+import { isToday } from 'date-fns';
 
 function Surprise() {
     const [revealed, setRevealed] = useState(false);
@@ -32,7 +33,7 @@ function Surprise() {
 
     return (
         <div className="absolute bottom-4 left-4 z-20 bg-card p-4 rounded-lg shadow-lg">
-             <Image src="https://picsum.photos/200/200" alt="Funny Gif" width={200} height={200} data-ai-hint="funny meme" />
+             <Image src="https://picsum.photos/seed/surprise/200/200" alt="Funny Gif" width={200} height={200} data-ai-hint="funny meme" />
             <p className="text-center mt-2">SURPRISE!</p>
         </div>
     )
@@ -179,11 +180,15 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
       </div>
     );
   }
+  
+  const birthdayDateObj = new Date(data.birthdayDate);
+  const isBirthdayToday = isToday(new Date(birthdayDateObj.getUTCFullYear(), birthdayDateObj.getUTCMonth(), birthdayDateObj.getUTCDate()));
+
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden p-4 md:p-8 flex flex-col" style={themeStyles}>
-       <Confetti />
-       <Balloons />
+       {isBirthdayToday && <Confetti />}
+       {isBirthdayToday && <Balloons />}
        <div className="absolute top-4 right-4 z-20 flex gap-2">
          <Button onClick={toggleMusic} variant="outline" size="icon">
           {isMusicPlaying ? <Volume2 /> : <VolumeX />}
@@ -234,7 +239,7 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
               );
               break;
             case 'countdown':
-              content = <div className={sizeClasses(element, size)}><CountdownTimer targetDate={new Date(data.birthdayDate)} /></div>;
+              content = <div className={sizeClasses(element, size)}><CountdownTimer targetDate={new Date(data.birthdayDate)} isBirthday={isBirthdayToday} /></div>;
               break;
             default:
               content = null;
@@ -245,7 +250,7 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
       <div className="py-8">
          <MemoryWall memories={memories} onAddMemoryClick={() => setShowMemoryForm(true)} showForm={showMemoryForm} onMemorySubmit={handleMemorySubmit} onCancel={() => setShowMemoryForm(false)} />
       </div>
-      <Surprise />
+       {isBirthdayToday && <Surprise />}
     </div>
   );
 }

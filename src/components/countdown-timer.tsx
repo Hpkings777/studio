@@ -6,16 +6,16 @@ import { Card } from './ui/card';
 
 type CountdownTimerProps = {
   targetDate: Date;
+  isBirthday: boolean;
 };
 
-export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
+export default function CountdownTimer({ targetDate, isBirthday }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
     minutes: 0,
     seconds: 0,
   });
-  const [isBirthday, setIsBirthday] = useState(false);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -23,11 +23,9 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
       const secondsRemaining = differenceInSeconds(targetDate, now);
 
       if (secondsRemaining <= 0) {
-        setIsBirthday(true);
         return { days: 0, hours: 0, minutes: 0, seconds: 0 };
       }
 
-      setIsBirthday(false);
       return {
         days: Math.floor(secondsRemaining / (3600 * 24)),
         hours: Math.floor((secondsRemaining % (3600 * 24)) / 3600),
@@ -36,14 +34,14 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
       };
     };
 
-    setTimeLeft(calculateTimeLeft());
-
-    const timer = setInterval(() => {
+    if (!isBirthday) {
       setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [targetDate]);
+      const timer = setInterval(() => {
+        setTimeLeft(calculateTimeLeft());
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [targetDate, isBirthday]);
 
   if (isBirthday) {
     return <div className="text-4xl font-bold text-primary animate-pulse">Happy Birthday!</div>;
