@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { format, differenceInYears, setYear, getYear, getMonth, getDate } from 'date-fns';
+import { format, differenceInYears, setYear, getYear, getMonth, getDate, subYears } from 'date-fns';
 import { CalendarIcon, Gift, ImageIcon, Mail, Music, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import { useState } from 'react';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
-  age: z.coerce.number().int().min(1, 'Age must be at least 1.').max(150),
+  age: z.coerce.number().int().min(1, 'Age must be at least 1.').max(150).optional(),
   message: z.string().min(10, 'Message must be at least 10 characters.').max(500),
   photo: z
     .custom<FileList>()
@@ -68,7 +68,6 @@ export function BirthdayForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      age: undefined,
       message: '',
       template: 'Modern',
       musicOption: 'preset',
@@ -89,14 +88,13 @@ export function BirthdayForm() {
 
   const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const ageValue = e.target.value;
-    const age = ageValue === '' ? undefined : +ageValue;
+    const age = ageValue ? parseInt(ageValue, 10) : undefined;
     form.setValue('age', age, { shouldValidate: true });
 
     if (age && age > 0) {
         const today = new Date();
-        const birthYear = today.getFullYear() - age;
-        const estimatedDob = new Date(birthYear, today.getMonth(), today.getDate());
-        form.setValue('dateOfBirth', estimatedDob, { shouldValidate: true });
+        const birthDate = subYears(today, age);
+        form.setValue('dateOfBirth', birthDate, { shouldValidate: true });
     }
   }
 
@@ -115,12 +113,14 @@ export function BirthdayForm() {
         : (values.presetMusic || '/music/happy-birthday-classic.mp3');
 
       const dob = values.dateOfBirth;
-      const birthdayDate = setYear(dob, getYear(new Date()));
+      const currentYear = getYear(new Date());
+      const birthdayDate = setYear(dob, currentYear);
+      const finalAge = differenceInYears(new Date(), dob);
 
 
       const birthdayData = {
         name: values.name,
-        age: values.age || 0,
+        age: finalAge,
         message: values.message,
         photoDataUri,
         dateOfBirth: values.dateOfBirth.toISOString(),
@@ -360,3 +360,4 @@ export function BirthdayForm() {
     </Form>
   );
 }
+ 
