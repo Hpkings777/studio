@@ -17,7 +17,7 @@ export default function LoadingScreen() {
         </h1>
         <p className="mt-4 text-sm font-semibold text-foreground/70 tracking-widest uppercase"
         >
-          Powered by Bhoot services
+          Powered by HPLabs
         </p>
       </div>
     </div>
