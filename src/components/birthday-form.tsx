@@ -1,10 +1,11 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { format, differenceInYears, setYear, getYear, getMonth, getDate, subYears } from 'date-fns';
+import { format, differenceInYears, setYear, getYear, subYears } from 'date-fns';
 import { CalendarIcon, Gift, ImageIcon, Mail, Music, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ import { useState } from 'react';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
-  age: z.coerce.number().int().min(1, 'Age must be at least 1.').max(150).optional(),
+  age: z.coerce.number().int().min(0, 'Age must be 0 or greater.').max(150).optional(),
   message: z.string().min(10, 'Message must be at least 10 characters.').max(500),
   photo: z
     .custom<FileList>()
@@ -73,31 +74,11 @@ export function BirthdayForm() {
       musicOption: 'preset',
       presetMusic: '/music/happy-birthday-classic.mp3',
       customMusicUrl: '',
+      age: 0,
     },
   });
 
   const selectedMusicOption = form.watch('musicOption');
-
-  const handleDobChange = (date: Date | undefined) => {
-    if (date) {
-        form.setValue('dateOfBirth', date, { shouldValidate: true });
-        const age = differenceInYears(new Date(), date);
-        form.setValue('age', age > 0 ? age : 1, { shouldValidate: true });
-    }
-  }
-
-  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const ageValue = e.target.value;
-    const age = ageValue ? parseInt(ageValue, 10) : undefined;
-    form.setValue('age', age, { shouldValidate: true });
-
-    if (age && age > 0) {
-        const today = new Date();
-        const birthDate = subYears(today, age);
-        form.setValue('dateOfBirth', birthDate, { shouldValidate: true });
-    }
-  }
-
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -114,9 +95,10 @@ export function BirthdayForm() {
 
       const dob = values.dateOfBirth;
       const currentYear = getYear(new Date());
-      const birthdayDate = setYear(dob, currentYear);
-      const finalAge = differenceInYears(new Date(), dob);
-
+      // The actual date of the birthday party this year
+      const birthdayDate = setYear(dob, currentYear); 
+      // The age the person is turning on that birthday
+      const finalAge = differenceInYears(birthdayDate, dob);
 
       const birthdayData = {
         name: values.name,
@@ -170,13 +152,20 @@ export function BirthdayForm() {
             <FormField
                 control={form.control}
                 name="age"
-                render={({ field }) => (
+                render={({ field: { onChange, ...field } }) => (
                 <FormItem>
                     <FormLabel>Age they are turning</FormLabel>
                     <FormControl>
                     <div className="relative">
                         <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input type="number" placeholder="e.g. 30" {...field} onChange={handleAgeChange} value={field.value ?? ''} className="pl-10" />
+                        <Input type="number" placeholder="e.g. 30" {...field} onChange={e => {
+                            onChange(e.target.valueAsNumber);
+                            const age = e.target.valueAsNumber;
+                            if (age && age > 0) {
+                                const birthDate = subYears(new Date(), age);
+                                form.setValue('dateOfBirth', birthDate, { shouldValidate: true });
+                            }
+                        }} value={field.value ?? ''} className="pl-10" />
                     </div>
                     </FormControl>
                     <FormMessage />
@@ -205,7 +194,13 @@ export function BirthdayForm() {
                         <Calendar 
                             mode="single" 
                             selected={field.value} 
-                            onSelect={handleDobChange} 
+                            onSelect={(date) => {
+                                if (date) {
+                                    field.onChange(date);
+                                    const age = differenceInYears(new Date(), date);
+                                    form.setValue('age', age > 0 ? age : 0, { shouldValidate: true });
+                                }
+                            }} 
                             initialFocus
                             captionLayout="dropdown-buttons"
                             fromYear={getYear(new Date()) - 120}
@@ -360,4 +355,3 @@ export function BirthdayForm() {
     </Form>
   );
 }
- 
