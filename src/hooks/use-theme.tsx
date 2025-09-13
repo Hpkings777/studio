@@ -24,19 +24,37 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, _setTheme] = useState<Theme>(defaultTheme);
-  const [birthdayId, setBirthdayId] = useState<string | null>(null);
 
   useEffect(() => {
-    const id = window.location.pathname.split('/birthday/')[1];
-    if (id) {
-      setBirthdayId(id);
-      const storedTheme = localStorage.getItem(`${THEME_STORAGE_PREFIX}${id}`);
-      if (storedTheme) {
-        _setTheme(JSON.parse(storedTheme));
-      } else {
-        _setTheme(defaultTheme);
+    const handlePathChange = () => {
+      const pathParts = window.location.pathname.split('/birthday/');
+      if (pathParts.length > 1) {
+        const id = pathParts[1].split('/')[0];
+        if (id) {
+          const storedTheme = localStorage.getItem(`${THEME_STORAGE_PREFIX}${id}`);
+          if (storedTheme) {
+            _setTheme(JSON.parse(storedTheme));
+          } else {
+            _setTheme(defaultTheme);
+          }
+        }
       }
-    }
+    };
+    
+    handlePathChange();
+
+    window.addEventListener('popstate', handlePathChange);
+    
+    const originalPushState = history.pushState;
+    history.pushState = function(...args) {
+      originalPushState.apply(this, args);
+      handlePathChange();
+    };
+
+    return () => {
+      window.removeEventListener('popstate', handlePathChange);
+      history.pushState = originalPushState;
+    };
   }, []);
 
   const setTheme = (id: string, newTheme: Theme) => {

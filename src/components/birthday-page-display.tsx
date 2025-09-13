@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { getBirthdayData, getMemories, saveMemory } from '@/lib/storage';
+import { getMemories, saveMemory } from '@/lib/storage';
 import { multiSpeakerTts } from '@/ai/flows/multi-speaker-tts.ts';
 import type { BirthdayData, LayoutConfig, Memory } from '@/types';
 import CountdownTimer from './countdown-timer';
@@ -38,7 +38,6 @@ function Surprise() {
     )
 }
 
-// Static layout to avoid AI flow timeouts on Vercel
 const staticLayout: LayoutConfig = {
     header: { element: 'name', position: 'top-center', size: 'large' },
     photo: { element: 'photo', position: 'center', size: 'medium' },
@@ -47,8 +46,7 @@ const staticLayout: LayoutConfig = {
 };
 
 
-export default function BirthdayPageDisplay({ id }: { id: string }) {
-  const [data, setData] = useState<BirthdayData | null>(null);
+export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
   const [layout, setLayout] = useState<LayoutConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,32 +63,34 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
     const minLoadingTime = new Promise(resolve => setTimeout(resolve, 2500));
     setLoading(true);
 
-    const birthdayData = getBirthdayData(id);
-
-    if (!birthdayData) {
+    if (!data) {
       setError('Birthday celebration not found. The link may be invalid or expired.');
       await minLoadingTime;
       setLoading(false);
       return;
     }
     
-    setData(birthdayData);
-    setMemories(getMemories(id));
-    setLayout(staticLayout); // Use the reliable static layout
+    const initialMemories = await getMemories(data.id);
+    setMemories(initialMemories);
+    setLayout(staticLayout); 
 
     await minLoadingTime;
     setLoading(false);
 
-  }, [id]);
+  }, [data]);
 
   useEffect(() => {
     fetchAndSetData();
-  }, [id, fetchAndSetData]);
+  }, [data, fetchAndSetData]);
   
-  const handleMemorySubmit = (author: string, message: string) => {
-    const newMemory = saveMemory(id, { author, message });
-    setMemories(currentMemories => [...currentMemories, newMemory]);
-    setShowMemoryForm(false);
+  const handleMemorySubmit = async (author: string, message: string) => {
+    try {
+        const newMemory = await saveMemory(data.id, { author, message });
+        setMemories(currentMemories => [...currentMemories, newMemory]);
+        setShowMemoryForm(false);
+    } catch (e) {
+        setError("Failed to save memory. Please try again.");
+    }
   };
 
   const toggleMusic = () => {
@@ -125,12 +125,13 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
     if (!data) return '';
     const { birthdayDate, name } = data;
     const date = new Date(birthdayDate);
-    const year = new Date().getFullYear();
-    const startDate = new Date(year, date.getMonth(), date.getDate());
-    const endDate = new Date(year, date.getMonth(), date.getDate() + 1);
+    // Note: The year from the date might be incorrect, so we get the current year.
+    const year = new Date().getFullYear(); 
+    const startDate = new Date(year, date.getUTCMonth(), date.getUTCDate());
+    const endDate = new Date(year, date.getUTCMonth(), date.getUTCDate() + 1);
 
-    const formattedStartDate = startDate.toISOString().replace(/-|:|\.\d+/g, '');
-    const formattedEndDate = endDate.toISOString().replace(/-|:|\.\d+/g, '');
+    const formattedStartDate = startDate.toISOString().replace(/-|:|\.\d+Z/g, '');
+    const formattedEndDate = endDate.toISOString().replace(/-|:|\.\d+Z/g, '');
 
     return `https://www.google.com/calendar/render?action=TEMPLATE&text=Birthday:%20${encodeURIComponent(name)}&dates=${formattedStartDate}/${formattedEndDate}&details=Don't%20forget%20to%20wish%20${encodeURIComponent(name)}%20a%20happy%20birthday!`;
     };
@@ -203,7 +204,7 @@ export default function BirthdayPageDisplay({ id }: { id: string }) {
       <audio ref={audioRef} src={data.musicUrl} loop />
       <audio ref={ttsAudioRef} />
       
-      {showThemeCustomizer && <ThemeCustomizer birthdayId={id} onClose={() => setShowThemeCustomizer(false)} />}
+      {showThemeCustomizer && <ThemeCustomizer birthdayId={data.id} onClose={() => setShowThemeCustomizer(false)} />}
 
       <div className="flex-grow grid grid-cols-1 grid-rows-4 gap-4">
         {orderedElements.map((item) => {

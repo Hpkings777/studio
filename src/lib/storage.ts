@@ -1,64 +1,79 @@
-'use client';
+import { db } from './firebase';
+import { collection, doc, setDoc, getDoc, getDocs, addDoc, Timestamp } from 'firebase/firestore';
+import type { BirthdayData, Memory, MemoryData } from '@/types';
 
-import type { BirthdayData, Memory } from '@/types';
+const BIRTHDAYS_COLLECTION = 'birthdays';
+const MEMORIES_COLLECTION = 'memories';
 
-const BIRTHDAY_BLISS_PREFIX = 'birthday-bliss-';
-const MEMORIES_PREFIX = 'birthday-memories-';
-
-
-export function saveBirthdayData(data: BirthdayData): void {
+export async function saveBirthdayData(data: Omit<BirthdayData, 'id'>): Promise<string> {
   try {
-    const key = `${BIRTHDAY_BLISS_PREFIX}${data.id}`;
-    const serializedData = JSON.stringify(data);
-    localStorage.setItem(key, serializedData);
+    const newDocRef = doc(collection(db, BIRTHDAYS_COLLECTION));
+    const birthdayDataWithTimestamp = {
+      ...data,
+      birthdayDate: Timestamp.fromDate(new Date(data.birthdayDate)),
+    }
+    await setDoc(newDocRef, birthdayDataWithTimestamp);
+    return newDocRef.id;
   } catch (error) {
-    console.error('Failed to save birthday data to localStorage', error);
+    console.error('Failed to save birthday data to Firestore', error);
+    throw new Error('Could not save birthday data.');
   }
 }
 
-export function getBirthdayData(id: string): BirthdayData | null {
+export async function getBirthdayData(id: string): Promise<BirthdayData | null> {
   try {
-    const key = `${BIRTHDAY_BLISS_PREFIX}${id}`;
-    const serializedData = localStorage.getItem(key);
-    if (serializedData === null) {
+    const docRef = doc(db, BIRTHDAYS_COLLECTION, id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      const birthdayDate = (data.birthdayDate as Timestamp).toDate().toISOString();
+      return { ...data, id: docSnap.id, birthdayDate } as BirthdayData;
+    } else {
+      console.log('No such document!');
       return null;
     }
-    return JSON.parse(serializedData) as BirthdayData;
   } catch (error) {
-    console.error('Failed to retrieve birthday data from localStorage', error);
+    console.error('Failed to retrieve birthday data from Firestore', error);
     return null;
   }
 }
 
-export function getMemories(birthdayId: string): Memory[] {
-    try {
-        const key = `${MEMORIES_PREFIX}${birthdayId}`;
-        const serializedData = localStorage.getItem(key);
-        if(serializedData === null) {
-            return [];
-        }
-        return JSON.parse(serializedData) as Memory[];
-    } catch(error) {
-        console.error('Failed to retrieve memories from localStorage', error);
-        return [];
-    }
+export async function getMemories(birthdayId: string): Promise<Memory[]> {
+  try {
+    const memoriesColRef = collection(db, BIRTHDAYS_COLLECTION, birthdayId, MEMORIES_COLLECTION);
+    const querySnapshot = await getDocs(memoriesColRef);
+    const memories = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        const timestamp = (data.timestamp as Timestamp).toDate().toISOString();
+        return { ...data, id: doc.id, timestamp } as Memory;
+    });
+    return memories.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  } catch (error) {
+    console.error('Failed to retrieve memories from Firestore', error);
+    return [];
+  }
 }
 
-export function saveMemory(birthdayId: string, memoryData: { author: string; message: string }): Memory {
-    const memories = getMemories(birthdayId);
+export async function saveMemory(birthdayId: string, memoryData: { author: string; message: string }): Promise<Memory> {
+  try {
+    const memoriesColRef = collection(db, BIRTHDAYS_COLLECTION, birthdayId, MEMORIES_COLLECTION);
+    const memoryDataWithTimestamp: MemoryData = {
+        ...memoryData,
+        timestamp: Timestamp.now(),
+    }
+    const docRef = await addDoc(memoriesColRef, memoryDataWithTimestamp);
+
     const newMemory: Memory = {
-        id: crypto.randomUUID(),
+        id: docRef.id,
         author: memoryData.author,
         message: memoryData.message,
-        timestamp: new Date().toISOString(),
-    };
-    const updatedMemories = [...memories, newMemory];
-    
-    try {
-        const key = `${MEMORIES_PREFIX}${birthdayId}`;
-        localStorage.setItem(key, JSON.stringify(updatedMemories));
-    } catch (error) {
-        console.error('Failed to save memory to localStorage', error);
+        timestamp: (memoryDataWithTimestamp.timestamp as Timestamp).toDate().toISOString(),
     }
     return newMemory;
+
+  } catch (error) {
+    console.error('Failed to save memory to Firestore', error);
+    throw new Error('Could not save memory.');
+  }
 }

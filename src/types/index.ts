@@ -1,10 +1,12 @@
+import type { Timestamp } from "firebase/firestore";
+
 export interface BirthdayData {
   id: string;
   name: string;
   age: number;
   message: string;
   photoDataUri: string;
-  birthdayDate: string; // Stored as ISO string in localStorage
+  birthdayDate: string; // Stored as ISO string in app, but Timestamp in Firestore
   template: 'Modern' | 'Classic' | 'Funky';
   musicUrl: string;
 }
@@ -13,7 +15,13 @@ export interface Memory {
     id: string;
     author: string;
     message: string;
-    timestamp: string;
+    timestamp: string; // ISO string
+}
+
+export interface MemoryData {
+    author: string;
+    message: string;
+    timestamp: Timestamp;
 }
 
 export interface LayoutConfig {

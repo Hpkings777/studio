@@ -16,7 +16,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { saveBirthdayData } from '@/lib/storage';
-import type { BirthdayData } from '@/types';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { useState } from 'react';
 
@@ -89,14 +88,11 @@ export function BirthdayForm() {
         photoDataUri = "https://placehold.co/400x400.png";
       }
       
-      const id = crypto.randomUUID();
-      
       const musicUrl = values.musicOption === 'custom' 
         ? values.customMusicUrl! 
         : (values.presetMusic || '/music/happy-birthday-classic.mp3');
 
-      const birthdayData: BirthdayData = {
-        id,
+      const birthdayData = {
         name: values.name,
         age: values.age,
         message: values.message,
@@ -106,7 +102,7 @@ export function BirthdayForm() {
         musicUrl,
       };
 
-      saveBirthdayData(birthdayData);
+      const id = await saveBirthdayData(birthdayData);
 
       toast({
         title: 'Success!',
