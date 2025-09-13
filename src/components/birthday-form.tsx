@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { format, differenceInYears, setYear, getYear } from 'date-fns';
+import { format, differenceInYears, setYear, getYear, getMonth, getDate } from 'date-fns';
 import { CalendarIcon, Gift, ImageIcon, Mail, Music, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -31,8 +31,8 @@ const formSchema = z.object({
     .refine((files) => !files || files.length === 0 || (files?.[0]?.type.startsWith('image/')), 'Only image files are accepted.')
     .refine((files) => !files || files.length === 0 || (files?.[0]?.size <= 4 * 1024 * 1024), 'Photo must be less than 4MB.')
     .optional(),
-  birthdayDate: z.date({
-    required_error: 'A date for the birthday is required.',
+  dateOfBirth: z.date({
+    required_error: 'A date of birth is required.',
   }),
   template: z.enum(['Modern', 'Classic', 'Funky'], {
     required_error: 'Please select a template.',
@@ -79,10 +79,10 @@ export function BirthdayForm() {
 
   const selectedMusicOption = form.watch('musicOption');
 
-  const handleDateChange = (date: Date | undefined) => {
+  const handleDobChange = (date: Date | undefined) => {
     if (date) {
-        form.setValue('birthdayDate', date, { shouldValidate: true });
-        const age = differenceInYears(new Date(), date) + 1;
+        form.setValue('dateOfBirth', date, { shouldValidate: true });
+        const age = differenceInYears(new Date(), date);
         form.setValue('age', age > 0 ? age : 1, { shouldValidate: true });
     }
   }
@@ -95,8 +95,8 @@ export function BirthdayForm() {
     if (age && age > 0) {
         const today = new Date();
         const birthYear = today.getFullYear() - age;
-        const estimatedBirthDate = new Date(birthYear, today.getMonth(), today.getDate());
-        form.setValue('birthdayDate', setYear(estimatedBirthDate, new Date().getFullYear()), { shouldValidate: true });
+        const estimatedDob = new Date(birthYear, today.getMonth(), today.getDate());
+        form.setValue('dateOfBirth', estimatedDob, { shouldValidate: true });
     }
   }
 
@@ -114,12 +114,17 @@ export function BirthdayForm() {
         ? values.customMusicUrl! 
         : (values.presetMusic || '/music/happy-birthday-classic.mp3');
 
+      const dob = values.dateOfBirth;
+      const birthdayDate = setYear(dob, getYear(new Date()));
+
+
       const birthdayData = {
         name: values.name,
         age: values.age || 0,
         message: values.message,
         photoDataUri,
-        birthdayDate: values.birthdayDate.toISOString(),
+        dateOfBirth: values.dateOfBirth.toISOString(),
+        birthdayDate: birthdayDate.toISOString(),
         template: values.template,
         musicUrl,
       };
@@ -180,10 +185,10 @@ export function BirthdayForm() {
             />
             <FormField
                 control={form.control}
-                name="birthdayDate"
+                name="dateOfBirth"
                 render={({ field }) => (
                 <FormItem className="flex flex-col pt-2">
-                    <FormLabel>Birthday Date</FormLabel>
+                    <FormLabel>Date of Birth</FormLabel>
                     <Popover>
                     <PopoverTrigger asChild>
                         <FormControl>
@@ -200,7 +205,7 @@ export function BirthdayForm() {
                         <Calendar 
                             mode="single" 
                             selected={field.value} 
-                            onSelect={handleDateChange} 
+                            onSelect={handleDobChange} 
                             initialFocus
                             captionLayout="dropdown-buttons"
                             fromYear={getYear(new Date()) - 120}
