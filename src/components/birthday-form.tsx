@@ -86,7 +86,7 @@ export function BirthdayForm() {
       if (values.photo && values.photo.length > 0) {
         photoDataUri = await fileToDataUri(values.photo[0]);
       } else {
-        photoDataUri = `https://picsum.photos/seed/${values.name.split(' ')[0] || 'person'}/400/400`;
+        photoDataUri = `https://picsum.photos/seed/${values.name.replace(/\s+/g, '-') || 'person'}/400/400`;
       }
       
       const musicUrl = values.musicOption === 'custom' 
@@ -95,9 +95,7 @@ export function BirthdayForm() {
 
       const dob = values.dateOfBirth;
       const currentYear = getYear(new Date());
-      // The actual date of the birthday party this year
       const birthdayDate = setYear(dob, currentYear); 
-      // The age the person is turning on that birthday
       const finalAge = differenceInYears(birthdayDate, dob);
 
       const birthdayData = {
@@ -152,20 +150,23 @@ export function BirthdayForm() {
             <FormField
                 control={form.control}
                 name="age"
-                render={({ field: { onChange, ...field } }) => (
+                render={({ field: { onChange, value, ...fieldProps } }) => (
                 <FormItem>
                     <FormLabel>Age they are turning</FormLabel>
                     <FormControl>
                     <div className="relative">
                         <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input type="number" placeholder="e.g. 30" {...field} onChange={e => {
-                            onChange(e.target.valueAsNumber);
-                            const age = e.target.valueAsNumber;
-                            if (age && age > 0) {
-                                const birthDate = subYears(new Date(), age);
+                        <Input type="number" placeholder="e.g. 30" {...fieldProps} 
+                          onChange={e => {
+                            const ageVal = e.target.value;
+                            onChange(ageVal === '' ? undefined : Number(ageVal));
+                            if (ageVal) {
+                                const birthDate = subYears(new Date(), Number(ageVal));
                                 form.setValue('dateOfBirth', birthDate, { shouldValidate: true });
                             }
-                        }} value={field.value ?? ''} className="pl-10" />
+                          }} 
+                          value={value ?? ''}
+                          className="pl-10" />
                     </div>
                     </FormControl>
                     <FormMessage />
@@ -197,7 +198,7 @@ export function BirthdayForm() {
                             onSelect={(date) => {
                                 if (date) {
                                     field.onChange(date);
-                                    const age = differenceInYears(new Date(), date);
+                                    const age = differenceInYears(setYear(date, getYear(new Date())), date);
                                     form.setValue('age', age > 0 ? age : 0, { shouldValidate: true });
                                 }
                             }} 
