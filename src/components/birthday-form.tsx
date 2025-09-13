@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { format, differenceInYears, setYear } from 'date-fns';
+import { format, differenceInYears, setYear, getYear } from 'date-fns';
 import { CalendarIcon, Gift, ImageIcon, Mail, Music, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -82,7 +82,7 @@ export function BirthdayForm() {
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
         form.setValue('birthdayDate', date, { shouldValidate: true });
-        const age = differenceInYears(date, new Date());
+        const age = differenceInYears(new Date(), date) + 1;
         form.setValue('age', age > 0 ? age : 1, { shouldValidate: true });
     }
   }
@@ -197,7 +197,15 @@ export function BirthdayForm() {
                         </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={handleDateChange} initialFocus />
+                        <Calendar 
+                            mode="single" 
+                            selected={field.value} 
+                            onSelect={handleDateChange} 
+                            initialFocus
+                            captionLayout="dropdown-buttons"
+                            fromYear={getYear(new Date()) - 120}
+                            toYear={getYear(new Date())}
+                         />
                     </PopoverContent>
                     </Popover>
                     <FormMessage />
