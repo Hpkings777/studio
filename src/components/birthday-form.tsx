@@ -81,7 +81,7 @@ export function BirthdayForm() {
   const selectedMusicOption = form.watch('musicOption');
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const { toast: showToast } = toast({
+    const { id: toastId } = toast({
       title: 'Creating Page...',
       description: 'Please wait while we get things ready.',
     });
@@ -89,7 +89,8 @@ export function BirthdayForm() {
     try {
       let photoDataUri: string;
       if (values.photo && values.photo.length > 0) {
-        showToast({
+        toast({
+            id: toastId,
             title: 'Uploading Photo...',
             description: 'This may take a moment for larger images.',
         });
@@ -106,7 +107,6 @@ export function BirthdayForm() {
       const currentYear = getYear(new Date());
       const birthdayDate = setYear(dob, currentYear); 
       
-      // Always calculate age right before submission
       const finalAge = differenceInYears(new Date(), dob);
 
       const birthdayData = {
@@ -120,15 +120,16 @@ export function BirthdayForm() {
         musicUrl,
       };
       
-      showToast({
+      toast({
+        id: toastId,
         title: 'Saving Birthday Data...',
         description: 'Storing the celebration details securely.',
       });
 
       const id = await saveBirthdayData(birthdayData);
 
-      showToast({
-        id,
+      toast({
+        id: toastId,
         variant: 'default',
         title: 'Success!',
         description: 'Your birthday page has been created.',
@@ -139,6 +140,7 @@ export function BirthdayForm() {
       console.error('Form submission error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       toast({
+        id: toastId,
         variant: 'destructive',
         title: 'Oh no! Something went wrong.',
         description: `Could not create the birthday page. Reason: ${errorMessage}`,
