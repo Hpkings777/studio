@@ -1,4 +1,4 @@
-import { db } from './firebase';
+import { getDb } from './firebase';
 import { collection, doc, setDoc, getDoc, getDocs, addDoc, Timestamp } from 'firebase/firestore';
 import type { BirthdayData, Memory, MemoryData } from '@/types';
 
@@ -7,6 +7,7 @@ const MEMORIES_COLLECTION = 'memories';
 
 export async function saveBirthdayData(data: Omit<BirthdayData, 'id'>): Promise<string> {
   try {
+    const db = getDb();
     const newDocRef = doc(collection(db, BIRTHDAYS_COLLECTION));
     const birthdayDataWithTimestamp = {
       ...data,
@@ -23,12 +24,12 @@ export async function saveBirthdayData(data: Omit<BirthdayData, 'id'>): Promise<
 
 export async function getBirthdayData(id: string): Promise<BirthdayData | null> {
   try {
+    const db = getDb();
     const docRef = doc(db, BIRTHDAYS_COLLECTION, id);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Convert Timestamps back to ISO strings for client-side usage
       const birthdayDate = (data.birthdayDate as Timestamp).toDate().toISOString();
       const dateOfBirth = (data.dateOfBirth as Timestamp).toDate().toISOString();
       return { ...data, id: docSnap.id, birthdayDate, dateOfBirth } as BirthdayData;
@@ -44,6 +45,7 @@ export async function getBirthdayData(id: string): Promise<BirthdayData | null> 
 
 export async function getMemories(birthdayId: string): Promise<Memory[]> {
   try {
+    const db = getDb();
     const memoriesColRef = collection(db, BIRTHDAYS_COLLECTION, birthdayId, MEMORIES_COLLECTION);
     const querySnapshot = await getDocs(memoriesColRef);
     const memories = querySnapshot.docs.map(doc => {
@@ -60,6 +62,7 @@ export async function getMemories(birthdayId: string): Promise<Memory[]> {
 
 export async function saveMemory(birthdayId: string, memoryData: { author: string; message: string }): Promise<Memory> {
   try {
+    const db = getDb();
     const memoriesColRef = collection(db, BIRTHDAYS_COLLECTION, birthdayId, MEMORIES_COLLECTION);
     const memoryDataWithTimestamp: MemoryData = {
         ...memoryData,
