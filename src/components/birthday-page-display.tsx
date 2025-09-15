@@ -129,7 +129,8 @@ export default function BirthdayPageDisplay({ data }: { data: BirthdayData }) {
     if (!data?.message) return;
     setIsTtsLoading(true);
     try {
-        const { audioDataUri } = await multiSpeakerTts({ message: data.message });
+        const ttsMessage = `Speaker1: ${data.message}`;
+        const { audioDataUri } = await multiSpeakerTts({ message: ttsMessage });
         if (ttsAudioRef.current) {
             ttsAudioRef.current.src = audioDataUri;
             ttsAudioRef.current.play();

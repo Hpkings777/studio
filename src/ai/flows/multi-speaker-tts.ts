@@ -14,7 +14,7 @@ import wav from 'wav';
 import { googleAI } from '@genkit-ai/googleai';
 
 const MultiSpeakerTtsInputSchema = z.object({
-  message: z.string().describe('The text to be converted to speech.'),
+  message: z.string().describe('The text to be converted to speech. Use "Speaker1:" and "Speaker2:" to assign different voices.'),
 });
 
 export type MultiSpeakerTtsInput = z.infer<typeof MultiSpeakerTtsInputSchema>;
@@ -63,17 +63,24 @@ const multiSpeakerTtsFlow = ai.defineFlow(
     outputSchema: MultiSpeakerTtsOutputSchema,
   },
   async ({ message }) => {
-    // A cheerful, standard voice
-    const voiceName = 'Algenib'; 
-
+    
     const { media } = await ai.generate({
       model: googleAI.model('gemini-2.5-flash-preview-tts'),
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
-           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: voiceName },
-            },
+           multiSpeakerVoiceConfig: {
+            speakerVoiceConfigs: [
+              {
+                speaker: 'Speaker1', // Cheerful, friendly voice
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Algenib' } },
+              },
+              {
+                speaker: 'Speaker2', // Calm, warm voice
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Achernar' } },
+              },
+            ]
+           }
         },
       },
       prompt: message,
