@@ -39,7 +39,7 @@ export async function getBirthdayData(id: string): Promise<BirthdayData | null> 
     }
   } catch (error) {
     console.error('Failed to retrieve birthday data from Firestore', error);
-    return null;
+    throw new Error('Could not retrieve birthday data.');
   }
 }
 

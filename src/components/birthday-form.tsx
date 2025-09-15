@@ -1,12 +1,13 @@
 
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { format, differenceInYears, setYear, getYear, subYears } from 'date-fns';
-import { CalendarIcon, Gift, ImageIcon, Mail, Music, User } from 'lucide-react';
+import { format, differenceInYears, getYear } from 'date-fns';
+import { CalendarIcon, Gift, ImageIcon, Mail, Music, User, PartyPopper } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -34,6 +35,9 @@ const formSchema = z.object({
     .optional(),
   dateOfBirth: z.date({
     required_error: 'A date of birth is required.',
+  }),
+  birthdayDate: z.date({
+    required_error: 'A celebration date is required.',
   }),
   template: z.enum(['Modern', 'Classic', 'Funky'], {
     required_error: 'Please select a template.',
@@ -75,6 +79,7 @@ export function BirthdayForm() {
       presetMusic: '/music/happy-birthday-classic.mp3',
       customMusicUrl: '',
       age: undefined,
+      birthdayDate: new Date(),
     },
   });
 
@@ -102,12 +107,8 @@ export function BirthdayForm() {
       const musicUrl = values.musicOption === 'custom' 
         ? values.customMusicUrl! 
         : (values.presetMusic || '/music/happy-birthday-classic.mp3');
-
-      const dob = values.dateOfBirth;
-      const currentYear = getYear(new Date());
-      const birthdayDate = setYear(dob, currentYear); 
       
-      const finalAge = differenceInYears(new Date(), dob);
+      const finalAge = differenceInYears(values.birthdayDate, values.dateOfBirth);
 
       const birthdayData = {
         name: values.name,
@@ -115,7 +116,7 @@ export function BirthdayForm() {
         message: values.message,
         photoDataUri,
         dateOfBirth: values.dateOfBirth.toISOString(),
-        birthdayDate: birthdayDate.toISOString(),
+        birthdayDate: values.birthdayDate.toISOString(),
         template: values.template,
         musicUrl,
       };
@@ -170,29 +171,6 @@ export function BirthdayForm() {
         <div className="grid md:grid-cols-2 gap-8">
             <FormField
                 control={form.control}
-                name="age"
-                render={({ field: { onChange, value, ...fieldProps } }) => (
-                <FormItem>
-                    <FormLabel>Age (will be calculated)</FormLabel>
-                    <FormControl>
-                    <div className="relative">
-                        <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input 
-                            type="number" 
-                            placeholder="e.g. 30" 
-                            {...fieldProps}
-                            value={value ?? ''}
-                            readOnly
-                            className="pl-10 text-muted-foreground" 
-                        />
-                    </div>
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
                 name="dateOfBirth"
                 render={({ field }) => (
                 <FormItem className="flex flex-col pt-2">
@@ -216,8 +194,11 @@ export function BirthdayForm() {
                             onSelect={(date) => {
                                 if (date) {
                                     field.onChange(date);
-                                    const age = differenceInYears(new Date(), date);
-                                    form.setValue('age', age >= 0 ? age : 0, { shouldValidate: true });
+                                    const celebrationDate = form.getValues('birthdayDate');
+                                    if (celebrationDate) {
+                                        const age = differenceInYears(celebrationDate, date);
+                                        form.setValue('age', age >= 0 ? age : 0, { shouldValidate: true });
+                                    }
                                 }
                             }} 
                             initialFocus
@@ -231,7 +212,70 @@ export function BirthdayForm() {
                 </FormItem>
                 )}
             />
+             <FormField
+                control={form.control}
+                name="birthdayDate"
+                render={({ field }) => (
+                <FormItem className="flex flex-col pt-2">
+                    <FormLabel>Celebration Date</FormLabel>
+                    <Popover>
+                    <PopoverTrigger asChild>
+                        <FormControl>
+                        <Button
+                            variant={'outline'}
+                            className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                        >
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                            <PartyPopper className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                        </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar 
+                            mode="single" 
+                            selected={field.value} 
+                            onSelect={(date) => {
+                                if (date) {
+                                    field.onChange(date);
+                                    const dob = form.getValues('dateOfBirth');
+                                    if (dob) {
+                                        const age = differenceInYears(date, dob);
+                                        form.setValue('age', age >= 0 ? age : 0, { shouldValidate: true });
+                                    }
+                                }
+                            }}
+                            initialFocus
+                         />
+                    </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
         </div>
+        <FormField
+            control={form.control}
+            name="age"
+            render={({ field: { onChange, value, ...fieldProps } }) => (
+            <FormItem>
+                <FormLabel>Age (will be on celebration day)</FormLabel>
+                <FormControl>
+                <div className="relative">
+                    <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input 
+                        type="number" 
+                        placeholder="Calculated automatically" 
+                        {...fieldProps}
+                        value={value ?? ''}
+                        readOnly
+                        className="pl-10 text-muted-foreground" 
+                    />
+                </div>
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+            )}
+        />
         <FormField
           control={form.control}
           name="message"
